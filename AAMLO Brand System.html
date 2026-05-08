@@ -1,0 +1,172 @@
+// Shared primitives for CLUMZY — Sukudo monogram (parent shell), nav, goli-bottle SVG,
+// flavor data, placeholder helpers, direction switcher.
+
+const { useState, useEffect, useRef, useMemo, useLayoutEffect } = React;
+
+function SukudoMark({ size = 28, color = 'currentColor' }) {
+  return (
+    <svg viewBox="0 0 64 64" width={size} height={size} aria-label="Sukudo">
+      <g fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round">
+        <rect x="4" y="4" width="56" height="56" rx="14" ry="14" />
+        <path d="M44 18 Q32 18 32 26 Q32 32 38 32 Q44 32 44 38 Q44 46 32 46" />
+      </g>
+    </svg>
+  );
+}
+
+function Eyebrow({ children, color, style = {} }) {
+  return <span className="eyebrow" style={{ color, ...style }}>{children}</span>;
+}
+function Mono({ children, style = {} }) {
+  return <span className="mono" style={{ fontSize: 11, letterSpacing: '0.06em', ...style }}>{children}</span>;
+}
+function PH({ ratio = '1 / 1', label, bg, children, style = {} }) {
+  return (
+    <div className="ph" style={{ aspectRatio: ratio, '--ph-bg': bg, ...style }}>
+      {children}
+      {label && <span className="ph-label">{label}</span>}
+    </div>
+  );
+}
+
+function Nav({ tint }) {
+  return (
+    <nav className="nav" style={{
+      color: tint || 'var(--cream)',
+      background: 'rgba(0,0,0,0.55)',
+      borderBottomColor: 'rgba(255,255,255,0.06)',
+    }}>
+      <div className="left">
+        <SukudoMark size={26} color={tint || 'currentColor'} />
+        <span className="word">SUKUDO CONSUMER</span>
+      </div>
+      <div className="links">
+        <a>Brands</a><a>About</a><a>Partner</a><a>Contact</a>
+      </div>
+    </nav>
+  );
+}
+
+/* Goli-soda bottle SVG — pinched-neck Codd-Neville bottle with the marble (goli)
+   trapped just below the neck. Used as a placeholder for real photography across
+   all three directions. */
+function GoliBottle({ height = 540, body = '#0E2330', cap = '#9A6B3F', label, glassHi = 'rgba(255,255,255,0.18)', marble = '#EDE5D2', goliPos = 0 /* 0 = trapped at neck, 1 = dropped to bottom */ }) {
+  const w = height * 0.32;
+  // marble Y between trapped (~62) and dropped (~252)
+  const marbleY = 62 + goliPos * 190;
+  return (
+    <svg viewBox="0 0 100 320" style={{ height, width: w, overflow: 'visible' }}>
+      <defs>
+        <linearGradient id="cl-glass" x1="0" x2="1">
+          <stop offset="0" stopColor={body} stopOpacity="1" />
+          <stop offset="0.5" stopColor={body} stopOpacity="0.86" />
+          <stop offset="1" stopColor={body} stopOpacity="1" />
+        </linearGradient>
+      </defs>
+      {/* cap */}
+      <rect x="36" y="2" width="28" height="12" rx="2" fill={cap} />
+      {/* neck */}
+      <path d="M40 14 L40 36 L42 36 L42 50 L40 52 L40 60
+               L60 60 L60 52 L58 50 L58 36 L60 36 L60 14 Z" fill={cap} opacity="0.18" />
+      <path d="M42 14 L42 50 L58 50 L58 14 Z" fill="url(#cl-glass)" />
+      {/* pinch — the codd neck where the marble sits */}
+      <path d="M42 50 Q50 56 58 50" fill="none" stroke={cap} strokeWidth="0.6" opacity="0.4" />
+      {/* shoulder */}
+      <path d="M30 60 Q22 80 22 110 L22 280 Q22 304 38 308 L62 308 Q78 304 78 280 L78 110 Q78 80 70 60 Z"
+            fill="url(#cl-glass)" stroke={cap} strokeWidth="0.5" strokeOpacity="0.25" />
+      {/* embossed faux label area */}
+      <rect x="26" y="160" width="48" height="120" fill="rgba(0,0,0,0.18)" />
+      <rect x="28" y="164" width="44" height="112" fill="none" stroke={cap} strokeOpacity="0.5" strokeWidth="0.3" />
+      {label && (
+        <>
+          <text x="50" y="200" textAnchor="middle"
+                fontFamily="Instrument Serif, serif" fontSize="11"
+                letterSpacing="2.4" fill={cap} opacity="0.95">CLUMZY</text>
+          <line x1="34" y1="208" x2="66" y2="208" stroke={cap} strokeOpacity="0.5" strokeWidth="0.3" />
+          <text x="50" y="226" textAnchor="middle"
+                fontFamily="Instrument Serif, serif" fontStyle="italic" fontSize="9" fill={cap} opacity="0.9">{label}</text>
+          <text x="50" y="262" textAnchor="middle"
+                fontFamily="Inter, sans-serif" fontSize="4" letterSpacing="2" fill={cap} opacity="0.7">200 ML · ₹40 · GOLI SODA</text>
+        </>
+      )}
+      {/* light highlight running down */}
+      <rect x="30" y="78" width="2.4" height="220" rx="1" fill={glassHi} />
+      <rect x="68" y="78" width="0.8" height="220" rx="1" fill={glassHi} opacity="0.4" />
+      {/* marble (the goli) */}
+      <circle cx="50" cy={marbleY} r="6" fill={marble} opacity="0.95" />
+      <circle cx="48" cy={marbleY - 2} r="2" fill="#fff" opacity="0.5" />
+    </svg>
+  );
+}
+
+const FLAVORS = [
+  {
+    code: '01',
+    name: 'BLUEBERRY',
+    line: 'A pop, a dark fruit, a long evening.',
+    note: 'Maine wild blueberry, faint cardamom finish.',
+    body: '#1E3A5F',
+    accent: '#5C7AA8',
+    label: 'Blueberry',
+  },
+  {
+    code: '02',
+    name: 'PIÑA COLADA',
+    line: 'A glass coast where the bottle was drawn.',
+    note: 'Coconut cream, slow-pressed pineapple.',
+    body: '#1A4A40',
+    accent: '#88B6A6',
+    label: 'Pina Colada',
+  },
+];
+
+function DirSwitcher({ value, onChange }) {
+  const opts = [
+    { id: 'safe', label: 'A · Glass Cabinet' },
+    { id: 'mid', label: 'B · Slow Dissolve' },
+    { id: 'bold', label: 'C · Pressure Drop' },
+  ];
+  return (
+    <div className="dir-switcher" role="tablist">
+      {opts.map(o => (
+        <button key={o.id}
+          aria-selected={value === o.id}
+          className={value === o.id ? 'active' : ''}
+          onClick={() => onChange(o.id)}>{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
+/* useScrollProgress — element-relative 0→1 progress, used by direction C for the goli drop. */
+function useScrollProgress(ref) {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    let raf;
+    const update = () => {
+      raf = null;
+      const el = ref.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // 0 when top of element hits bottom of viewport, 1 when bottom of element hits top
+      const total = r.height + vh;
+      const past = vh - r.top;
+      setP(Math.max(0, Math.min(1, past / total)));
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [ref]);
+  return p;
+}
+
+Object.assign(window, {
+  SukudoMark, Eyebrow, Mono, PH, Nav, GoliBottle, FLAVORS, DirSwitcher, useScrollProgress,
+});
